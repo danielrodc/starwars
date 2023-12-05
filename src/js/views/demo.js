@@ -1,43 +1,98 @@
-import React, { useState, useEffect, useContext } from "react";
-import { Link } from "react-router-dom";
+const getState = ({ getStore, getActions, setStore }) => {
+	return {
+		store: {
+			baseURL: "https://www.swapi.tech/api",
+			people: [],
+			planets: [],
+			vehicles: [],
+			currentItem: undefined,
+			list:[],
+			favorite: undefined,
+		},
 
-import { Context } from "../store/appContext";
+		actions: {
+			getItems: async (resource) => {
+				const store = getStore();
+				const response = await fetch(
+					`${store.baseURL}/${resource}?page=1&limit=20`
+				);
+				const body = await response.json();
+				setStore({
+					[resource]: body.results.map((item)=>{
+						return {
+							...item, resource
+						}
+					}),
+				});
+			},
+			getDetails: async (resource, uid) => {
+				const store = getStore();
+				const response = await fetch(
+					`${store.baseURL}/${resource}/${uid}`
+				)
+				const body = await response.json();
+				if (!response.ok) return;
+				setStore({
+					currentItem: body.result,
+				});
+			},
+			removeCurrentItem: () => setStore({ currentItem: undefined }),
+			getFavorites: async (resource, uid) => {
+				const store = getStore();
+				const response = await fetch(
+					`${store.baseURL}/${resource}/${uid}`
+				)
+				const body = await response.json();
+				if (!response.ok) return;
+				setStore({
+					favorite: Object.assign({resource},body.result),
+					list: [...store.list, {...body.result, resource}],
+				});
 
-import "../../styles/demo.css";
 
-export const Demo = () => {
-	const { store, actions } = useContext(Context);
+			},
+			deleteFav: (deleteFavorite) => {
+				const store = getStore();
+				setStore({
+					list: deleteFavorite,
+				});
+				console.log(store.list);
+			},
+			
+			
 
-	return (
-		<div className="container">
-			<ul className="list-group">
-				{store.demo.map((item, index) => {
-					return (
-						<li
-							key={index}
-							className="list-group-item d-flex justify-content-between"
-							style={{ background: item.background }}>
-							<Link to={"/single/" + index}>
-								<span>Link to: {item.title}</span>
-							</Link>
-							{// Conditional render example
-							// Check to see if the background is orange, if so, display the message
-							item.background === "orange" ? (
-								<p style={{ color: item.initial }}>
-									Check store/flux.js scroll to the actions to see the code
-								</p>
-							) : null}
-							<button className="btn btn-success" onClick={() => actions.changeColor(index, "orange")}>
-								Change Color
-							</button>
-						</li>
-					);
-				})}
-			</ul>
-			<br />
-			<Link to="/">
-				<button className="btn btn-primary">Back home</button>
-			</Link>
-		</div>
-	);
+
+
+
+
+
+
+
+			// Use getActions to call a function within a fuction
+			exampleFunction: () => {
+				getActions().changeColor(0, "green");
+			},
+			loadSomeData: () => {
+				/**
+					fetch().then().then(data => setStore({ "foo": data.bar }))
+				*/
+			},
+			changeColor: (index, color) => {
+				//get the store
+				const store = getStore();
+
+				//we have to loop the entire demo array to look for the respective index
+				//and change its color
+				const demo = store.demo.map((elm, i) => {
+					if (i === index) elm.background = color;
+					return elm;
+				});
+
+				//reset the global store
+				setStore({ demo: demo });
+			}
+		}
+	};
 };
+
+export default getState;
